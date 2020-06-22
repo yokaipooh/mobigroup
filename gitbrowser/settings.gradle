@@ -1,2 +1,506 @@
-include ':app'
-rootProject.name='gitbrowser'
+from flask import Flask, render_template, json, request, redirect, url_for
+from forms.searchForms import SearchForm
+from flask_sqlalchemy import SQLAlchemy
+from flask_bcrypt import Bcrypt
+
+app = Flask(__name__, template_folder='templates')
+#SET SECRETKEY ---------------------------------------------------------------------------------
+class Config_SK(object):
+    app.config['SECRET_KEY'] = '6efc92e4fdea016b2111bd8a6432f19b'
+
+#DATABASE---------------------------------------------------------------------------------------
+class Config_DB(object):
+    POSTGRES = {
+        'user': 'postgres',
+        'pw': '12345',
+        'db': 'postgres',
+        'host': 'localhost',
+        'port': '5432',
+    }
+
+    app.config['DEBUG'] = True
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://%(user)s:%(pw)s@%(host)s:%(port)s/%(db)s' % POSTGRES
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # silence the deprecation warning
+
+app.config.from_object(Config_DB)
+db = SQLAlchemy(app)
+
+
+#HEX USERPASSWORD-------------------------------------------------------------------------------
+bcrypt = Bcrypt(app)
+
+
+#-----------------------------------------------------------------------------------------------
+from models.gene import krp1, tcp2
+from models.searchtype import filters
+
+
+@app.route('/')
+@app.route('/home', methods=['GET', 'POST'])
+def home():
+    return render_template('home.html', title = 'Basic search')
+
+#@app.route('/search_results/<query>')
+#def search_results(query):
+#    if query == 'krp1':
+#        results = krp1.query.all()
+#    elif query == 'tcp2':
+#        results = tcp2.query.all()
+#    return render_template('search_results.html', query=query, results=results, title ='Search Results')
+
+#form = SearchForm()
+#   if request.method == 'POST' and form.validate_on_submit():
+#        query=form.search.data
+#        return redirect(url_for('search_results', query = query))
+@app.route('/about')
+def about():
+    return render_template('about.html', title =' About')
+
+@app.route('/search_advance')
+def search_advance():
+    return render_template('search_adv.html', title =' Search Advance')
+
+
+
+
+if __name__ == '__main__':
+    app.run(Debug = True)
+-----------------------------------
+<!DOCTYPE html>
+<html>
+
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <!-- Bootstrap CSS -->
+
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/login.css') }}">
+  <script src="https://kit.fontawesome.com/265c532431.js" crossorigin="anonymous"></script>
+  <!-- Latest compiled and minified CSS -->
+  <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+  <script src="https://www.w3schools.com/lib/w3.js"></script>
+  <!-- Optional theme -->
+  <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css">
+
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/footer.css') }}">
+  {% if title %}
+  <title>Test - {{ title }}</title>
+  {% else %}
+  <title>Test</title>
+  {% endif %}
+</head>
+
+<body>
+  <header class="site-header">
+    <div class="body-wrap">
+      <div class="container">
+        <nav class="navbar navbar-inverse" role="navigation">
+          <div class="container-fluid">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse"
+                data-target="#bs-example-navbar-collapse-1">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              <a class="navbar-brand" href="{{ url_for('home')}}">My project</a>
+            </div>
+
+            <!-- Collect the nav links, forms, and other content for toggling -->
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+              <ul class="nav navbar-nav">
+                <li><a href="{{ url_for('home')}}">Home</a></li>
+                <li class="dropdown">
+                  <a href="#" class="dropdown-toggle" data-toggle="dropdown"> Search <b
+                      class="caret"></b></a>
+                  <ul class="dropdown-menu">
+                    <li><a href="#">Account information</a></li>
+                    <li><a href="#">Change Password</a></li>
+                    <li><a href="#">Logout</a></li>
+                  </ul>
+                </li>
+                <li class="dropdown">
+                  <a href="#" class="dropdown-toggle" data-toggle="dropdown"> Search <b
+                      class="caret"></b></a>
+                  <ul class="dropdown-menu">
+                    <li><a href="#">Account information</a></li>
+                    <li><a href="#">Change Password</a></li>
+                    <li><a href="#">Logout</a></li>
+                  </ul>
+                </li>
+                <li><a href="{{ url_for('about')}}">About</a></li>
+
+
+              </ul>
+
+              <ul class="nav navbar-nav navbar-right">
+                <li class="dropdown">
+                  <a href="#" class="dropdown-toggle" data-toggle="dropdown"> Search <b
+                      class="caret"></b></a>
+                  <ul class="dropdown-menu">
+                    <li><a href="#">Account information</a></li>
+                    <li><a href="#">Change Password</a></li>
+                    <li><a href="#">Logout</a></li>
+                  </ul>
+                </li>
+              </ul>
+            </div>
+            <!-- /.navbar-collapse -->
+          </div>
+          <!-- /.container-fluid -->
+        </nav>
+      </div>
+    </div>
+  </header>
+
+
+
+
+  <main role="main" class="container">
+    <div class="row">
+      <div class="col-md-12">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">
+          {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer" {% block script %}{% endblock %} >
+  <div class="container">
+    <div class="col-md-12 col-lg-12 resolve-grid">
+      <div class="col-md-2">
+        <a href="http://www.ibc-montpellier.fr/wp/wp5"><div class="hexagone"><img src="{{ url_for('static', filename='images/IBC.png')}}" alt="IBC"></div></a>
+      </div>
+      <div class="col-md-2">
+        <a href="http://www.cirad.fr"><div class="hexagone"><img alt="CIRAD" src="{{ url_for('static', filename='images/CIRAD.png')}}"></div></a>
+      </div>
+      <div class="col-md-2">
+        <a href="http://www.ird.fr"><div class="hexagone"><img src="{{ url_for('static', filename='images/IRD.png')}}" alt="IRD"></div></a>
+      </div>
+      <div class="col-md-2">
+                            <a href="https://www.umontpellier.fr"><div class="hexagone"><img src="{{ url_for('static', filename='images/UM.png')}}" alt="Univ. Montpellier"></div></a>
+      </div>
+      <div class="col-md-2">
+                                <a href="https://www.france-bioinformatique.fr"><div class="hexagone"><img src="{{ url_for('static', filename='images/IFB.png')}}" alt="INRIA"></div></a>
+      </div>
+
+      <div class="col-md-2">
+        <a href="http://www.southgreen.fr"><div class="hexagone"><img src="{{ url_for('static', filename='images/southgreen.png')}}" alt="INRIA"></div></a>
+      </div>
+
+    </div>
+  </div>
+  <div class="copyright">&COPY; AgroLD 2019</div>
+</footer>
+
+
+  <!-- Optional JavaScript -->
+  <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+  <script src="https://netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script type="text/javascript">
+    $('ul.nav li.dropdown').hover(function () {
+      $(this).find('.dropdown-menu').stop(true, true).delay(200).fadeIn(500);
+    }, function () {
+      $(this).find('.dropdown-menu').stop(true, true).delay(200).fadeOut(500);
+    });
+  </script>
+  <script type="text/javascript">
+    $("document").ready(function(){
+    setTimeout(function(){
+        $("div.alert").remove();
+    }, 5000 ); // 5 secs
+
+});
+
+  </script>
+  <script>
+    function myFunction() {
+    document.getElementById("demo").innerHTML = "<input id="keyword" class="keyword" name="keyword" type="text" autofocus="" placeholder="Search term...">";
+    }
+</script>
+</body>
+
+</html>
+---------------------------------
+{% extends "layout.html" %}
+{% block content %}
+            <div class="col md-12">
+                <div class="bug-rport-2">
+
+                                <div class="primary-a col-md-12 col-lg-12 brise">
+                                    <center>
+                                    <!--<div class="primary-a col-sm-12 col-lg-6">-->
+                                        <h1>Agronomic Linked Data</h1>
+                                        <h3>The RDF Knowledge-based Database for plant molecular networks</h3>
+                                        <br>
+                                    </center>
+
+                                    </div>
+                             <div id="sform">
+                                    <center>
+                                    <form id="search" action="http://agrold.southgreen.fr/fct/facet.vsp?cmd=text&sid=231" method="post" target="_blank">
+                                    <!--form id="search" action="http://volvestre.cirad.fr:8890/fct/facet.vsp?cmd=text&sid=231"" method="post" target="_blank"-->
+                                        <div class="col-lg-12">
+                                            <div class="input-group">
+                                                <!--input type="text" class="form-control" placeholder="Search for..."-->
+                                                <input class="keyword form-control" name="q" type="text" placeholder="examples: GRP2 or TCP12 or plant height" data-step="1" data-intro="Type your expression and then ..."/>
+                                                <span class="input-group-btn">
+                                                    <input class="btn btn-secondary" type="submit" value="Search" data-step="2" data-intro="launch the search engine!" required/>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </form>
+                                    <div class="error"></div>
+                                    <div class="success"></div>
+                                    <span style="margin-top:30px;color:red;display:none" class="message">Please enter a keword</span>
+<!--                                    <script>
+                                        $('form#search').click(function(e){
+                                            var request=$(".keyword").val();
+                                            console.log('request'+request);
+                                             if(request==""){
+                                                $('.message').show();
+                                                e.stopPropagation();
+                                                e.preventDefault();
+                                            }else{
+                                                $('.message').hide();
+                                                saveRequest(request);
+                                            }
+                                        });
+
+                                        function saveRequest(keyword){
+                                            $.ajax({
+                                                type:'post',
+                                                data:'p={m:"setQuickSearch",keyword:'+keyword+'}',
+                                                url:'ToolHistory',
+                                                success:function(data){
+                                                    $('.success').html(data);
+                                                }
+                                            });
+                                        }
+                                    </script>-->
+                                </center>
+                            </div>
+                </div>
+            </div>
+
+{% endblock content %}
+-------------------------------
+/* bootstrap dropdown hover menu*/
+
+body {
+  font-family: 'PT Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: #4f5d6e;
+  position: relative;
+  height: 100%;
+  width: 100%;
+  background: url(https://w.wallhaven.cc/full/ey/wallhaven-eymzjk.jpg);
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-attachment: fixed;
+
+}
+
+
+.body-wrap {
+  min-height: 200px;
+}
+
+.body-wrap {
+  position: relative;
+  z-index: 0;
+}
+
+.body-wrap:before,
+.body-wrap:after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: -1;
+}
+
+.body-wrap:after {
+  top: auto;
+  bottom: 0;
+}
+nav {
+  margin-top: 60px;
+  box-shadow: 5px 4px 5px #000;
+}
+
+.article-title {
+  color: #444444;
+}
+
+a.article-title:hover {
+  color: #428bca;
+  text-decoration: none;
+}
+
+.article-content {
+  white-space: pre-line;
+}
+
+.article-img {
+  height: 65px;
+  width: 65px;
+  margin-right: 16px;
+}
+
+.article-metadata {
+  padding-bottom: 1px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid #e3e3e3
+}
+
+.article-metadata a:hover {
+  color: #333;
+  text-decoration: none;
+}
+
+.article-svg {
+  width: 25px;
+  height: 25px;
+  vertical-align: middle;
+}
+
+.account-img {
+  height: 125px;
+  width: 125px;
+  margin-right: 20px;
+  margin-bottom: 16px;
+}
+
+.account-heading {
+  font-size: 2.5rem;
+}
+
+
+
+.content-section{
+  width: auto;
+  height: auto;
+  margin-left: 350px;
+  margin-right: 350px;
+}
+.card-signin {
+  position: central;
+  border: 0;
+  border-radius: 1rem;
+  box-shadow: 0 0.5rem 1rem 0 rgba(0, 0, 0, 0.1);
+  color: black;
+  background-color: white;
+  margin: 0 auto;
+}
+
+.card-signin .card-title {
+  margin-bottom: 2rem;
+  font-weight: 300;
+  font-size: 1.5rem;
+}
+
+.card-signin .card-body {
+  padding: 2rem;
+}
+
+
+.card-user {
+  box-shadow: 0 0.5rem 1rem 0 rgba(0, 0, 0, 0.1);
+}
+
+.footer{
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  text-align: center;
+}
+/************************
+*    Advanced Search    *
+************************/
+section #advanced-form {
+   padding-top : 150px;
+   transition : all 1s;
+}
+section #advanced-form.searched {
+    padding-top :10px;
+}
+#advanced-form input[type=text] {
+    width : calc( 100% - 300px );
+}
+.A-Search {
+    /*display: none !important; */
+}
+button#afft {
+  text-align: center;
+  text-decoration-color: white;
+  width : 200px !important;
+  cursor: pointer;
+    background : #333;
+    border : none ;
+    border-right : solid 1px #333 ;
+}
+body {
+    padding-top: 50px;
+}
+.input-group-btn .dropdown-menu {
+    margin-top: -1px;
+}
+.input-group-btn .btn-group {
+    display: flex !important;
+}
+.btn-group .btn {
+    border-radius: 0;
+    margin-left: -1px;
+}
+.btn-group .btn:last-child {
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+}
+.btn-group .form-horizontal .btn[type="submit"] {
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
+.form-horizontal .form-group {
+    margin-left: 0;
+    margin-right: 0;
+}
+.form-group .form-control:last-child {
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+}
+
+.dropdown-item  {
+    width : 100%;
+    text-indent: 5px;
+}
+.dropdown-item:last-child {
+    margin-bottom: 10px;
+}
+.A-Search input[type=text].keyword {
+    width : 100%;
+    background : #333;
+    border : rgba(255,255,255,0);
+
+}
+.A-Search .delim {
+    padding: 35px;
+    background: #333;
+}
